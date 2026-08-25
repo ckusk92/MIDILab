@@ -1,0 +1,389 @@
+<Window x:Class="MIDILab.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MIDILab" Height="720" Width="1220" MinHeight="560" MinWidth="900"
+        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
+    <Window.Resources>
+        <!-- MIDILab theme tokens. MainWindow.xaml.cs swaps these brushes for dark mode. -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF4F6FA"/>
+        <SolidColorBrush x:Key="WindowForegroundBrush" Color="#FF18202A"/>
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#FFF9FAFC"/>
+        <SolidColorBrush x:Key="ControlForegroundBrush" Color="#FF18202A"/>
+        <SolidColorBrush x:Key="BorderBrushTheme" Color="#FFD6DCE5"/>
+        <SolidColorBrush x:Key="SubtleBackgroundBrush" Color="#FFF0F3F8"/>
+        <SolidColorBrush x:Key="StatusForegroundBrush" Color="#FF667085"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF5865F2"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF4752D6"/>
+        <SolidColorBrush x:Key="AccentForegroundBrush" Color="#FFFFFFFF"/>
+        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#FFEEF1F6"/>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource WindowForegroundBrush}"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushTheme}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource ButtonHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder" CornerRadius="8"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+                                <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.84"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushTheme}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="MinHeight" Value="32"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Chrome"
+                                                CornerRadius="7"
+                                                Background="{DynamicResource ControlBackgroundBrush}"
+                                                BorderBrush="{DynamicResource BorderBrushTheme}"
+                                                BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="30"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <ContentPresenter Grid.Column="0"
+                                                                  Margin="8,0,4,0"
+                                                                  VerticalAlignment="Center"
+                                                                  HorizontalAlignment="Left"
+                                                                  Content="{Binding SelectionBoxItem, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentTemplate="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  ContentStringFormat="{Binding SelectionBoxItemStringFormat, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                                  TextElement.Foreground="{DynamicResource ControlForegroundBrush}"/>
+
+                                                <Border Grid.Column="1"
+                                                        Background="Transparent"
+                                                        BorderBrush="{DynamicResource BorderBrushTheme}"
+                                                        BorderThickness="1,0,0,0">
+                                                    <Path Width="8" Height="5"
+                                                          HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"
+                                                          Fill="{DynamicResource ControlForegroundBrush}"
+                                                          Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource ButtonHoverBrush}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter TargetName="Chrome" Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <Popup x:Name="Popup"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,3,0,0"
+                                        MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{DynamicResource ControlBackgroundBrush}"
+                                        BorderBrush="{DynamicResource BorderBrushTheme}"
+                                        BorderThickness="1"
+                                        CornerRadius="7">
+                                    <ScrollViewer Margin="2"
+                                                  SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True"
+                                                    KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="Popup" Property="MinHeight" Value="40"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Style.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonHoverBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushTheme}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="MinHeight" Value="32"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource WindowForegroundBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Slider">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <Border Padding="16" BorderThickness="1" BorderBrush="{DynamicResource BorderBrushTheme}" Background="{DynamicResource PanelBackgroundBrush}" CornerRadius="12">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">BPM</TextBlock>
+                <TextBox x:Name="BpmTextBox" Text="120" Width="72" VerticalContentAlignment="Center" Margin="0,0,18,0"
+                         ToolTip="Playback tempo in beats per minute. Higher BPM makes the groove play faster."/>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Bars</TextBlock>
+                <ComboBox x:Name="BarsComboBox" SelectedIndex="1" Width="72" Margin="0,0,18,0"
+                          ToolTip="How many bars MIDILab should generate in the selected time signature.">
+                    <ComboBoxItem Content="1"/>
+                    <ComboBoxItem Content="4"/>
+                    <ComboBoxItem Content="8"/>
+                    <ComboBoxItem Content="16"/>
+                </ComboBox>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Time Signature</TextBlock>
+                <ComboBox x:Name="TimeSignatureComboBox" SelectedIndex="0" Width="78" Margin="0,0,10,0"
+                          SelectionChanged="TimeSignatureComboBox_SelectionChanged"
+                          ToolTip="Sets the musical meter. 4/4 is the default; 3/4, 6/8, 5/4 and 7/8 are also supported.">
+                    <ComboBoxItem Content="4/4"/>
+                    <ComboBoxItem Content="3/4"/>
+                    <ComboBoxItem Content="6/8"/>
+                    <ComboBoxItem Content="5/4"/>
+                    <ComboBoxItem Content="7/8"/>
+                </ComboBox>
+
+                <StackPanel x:Name="GroupingPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Grouping</TextBlock>
+                    <ComboBox x:Name="GroupingComboBox" Width="92" Margin="0,0,18,0"
+                              ToolTip="For odd meters, chooses which beats are grouped together and emphasized."/>
+                </StackPanel>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Genre</TextBlock>
+                <ComboBox x:Name="GenreComboBox" SelectedIndex="0" Width="105" Margin="0,0,18,0"
+                          ToolTip="Changes the musical rules used to generate the groove, not just the drum sounds.">
+                    <ComboBoxItem Content="Rock"/>
+                    <ComboBoxItem Content="Indie"/>
+                    <ComboBoxItem Content="Folk"/>
+                    <ComboBoxItem Content="Metal"/>
+                </ComboBox>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Section</TextBlock>
+                <ComboBox x:Name="SectionComboBox" SelectedIndex="0" Width="112" Margin="0,0,18,0"
+                          ToolTip="Shapes the generated groove for a song role. General preserves the normal generator behavior.">
+                    <ComboBoxItem Content="General"/>
+                    <ComboBoxItem Content="Intro"/>
+                    <ComboBoxItem Content="Verse"/>
+                    <ComboBoxItem Content="Pre-Chorus"/>
+                    <ComboBoxItem Content="Chorus"/>
+                    <ComboBoxItem Content="Bridge"/>
+                    <ComboBoxItem Content="Breakdown"/>
+                    <ComboBoxItem Content="Outro"/>
+                </ComboBox>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Export Target</TextBlock>
+                <ComboBox x:Name="OutputProfileComboBox" SelectedIndex="0" Width="225" Margin="0,0,18,0"
+                          SelectionChanged="OutputProfileComboBox_SelectionChanged"
+                          ToolTip="Chooses the MIDI drum map used when exporting. General MIDI is the default.">
+                    <ComboBoxItem Content="General MIDI"/>
+                    <ComboBoxItem Content="Steven Slate Drums 5.5 - Factory Map"/>
+                </ComboBox>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Energy</TextBlock>
+                <Slider x:Name="EnergySlider" Minimum="0" Maximum="100" Value="55"
+                        TickFrequency="10" Width="150" Margin="0,0,18,0"
+                        ToolTip="Controls how active and forceful the generated performance is: denser kick/cymbal activity, stronger accents and more fills at higher values."/>
+
+                <TextBlock VerticalAlignment="Center" Margin="0,0,8,0">Humanize</TextBlock>
+                <Slider x:Name="HumanizeSlider" Minimum="0" Maximum="100" Value="45"
+                        TickFrequency="10" Width="150" Margin="0,0,14,0"
+                        ToolTip="Adds controlled velocity and timing variation so the performance sounds less mechanically quantized."/>
+
+                <Button x:Name="CustomizeKitButton" Content="Customize Kit" Height="32" Padding="10,0" Margin="0,0,8,0"
+                        Click="CustomizeKitButton_Click"
+                        ToolTip="Choose which drum and percussion pieces appear in the editor and can be used by the generator."/>
+                <Button x:Name="HelpButton" Content="? Settings Guide" Height="32" Padding="10,0" Margin="0,0,14,0"
+                        Click="HelpButton_Click" ToolTip="Show or hide descriptions of the generation controls."/>
+                <CheckBox x:Name="DarkModeCheckBox" Content="Dark Mode" VerticalAlignment="Center"
+                          Checked="DarkModeCheckBox_Changed" Unchecked="DarkModeCheckBox_Changed"
+                          ToolTip="Switch between the default light appearance and a dark theme."/>
+
+            </WrapPanel>
+            </Border>
+
+            <Border x:Name="KitSettingsBorder" Visibility="Collapsed" Margin="0,8,0,0" Padding="14"
+                    BorderThickness="1" BorderBrush="{DynamicResource BorderBrushTheme}" CornerRadius="12"
+                    Background="{DynamicResource SubtleBackgroundBrush}">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10" LastChildFill="False">
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="Customize Kit" FontWeight="Bold" FontSize="15"/>
+                            <TextBlock x:Name="KitProfileHintTextBlock"
+                                       Text="The original nine pieces are selected by default. Availability and exported MIDI notes follow the selected Export Target."
+                                       Foreground="{DynamicResource StatusForegroundBrush}" Margin="0,3,12,0"/>
+                        </StackPanel>
+                        <Button x:Name="ResetKitButton" Content="Reset Default Kit" DockPanel.Dock="Right"
+                                HorizontalAlignment="Right" Padding="12,5" Click="ResetKitButton_Click"/>
+                    </DockPanel>
+                    <WrapPanel x:Name="KitOptionsPanel"/>
+                    <TextBlock Text="MIDILab generates musical instrument roles first, then translates them through the selected export profile. Added pieces can always be edited manually; the generator uses suitable extras sparingly based on genre, section, and energy."
+                               TextWrapping="Wrap" Foreground="{DynamicResource StatusForegroundBrush}" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="SettingsGuideBorder" Visibility="Collapsed" Margin="0,8,0,0" Padding="12"
+                    BorderThickness="1" BorderBrush="{DynamicResource BorderBrushTheme}" CornerRadius="12" Background="{DynamicResource SubtleBackgroundBrush}">
+                <StackPanel>
+                    <TextBlock Text="Settings Guide" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="BPM: "/><Run Text="Sets playback/export tempo. 120 BPM means two beats per second."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Bars: "/><Run Text="Sets the number of measures. The number of grid steps in each bar automatically changes with the selected time signature."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Time Signature: "/><Run Text="Controls the meter and bar length. 4/4 is the default. 3/4 has three quarter-note beats; 6/8 is naturally grouped 3+3; 5/4 and 7/8 expose a Grouping option so the generator can emphasize the chosen internal pulse."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Grouping: "/><Run Text="For odd meters, tells MIDILab where the strong internal divisions fall. For example, 7/8 can feel like 2+2+3, 2+3+2 or 3+2+2."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Genre: "/><Run Text="Changes the generator's musical tendencies. Rock is balanced and conventional; Indie favors syncopation and variation; Folk stays lighter and simpler; Metal favors denser kick/cymbal activity and stronger fills."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Section: "/><Run Text="Shapes the groove for its role in a song. General keeps the standard behavior; Intro and Verse are more restrained, Pre-Chorus builds, Chorus opens up, Bridge changes orchestration, Breakdown gets sparse, and Outro emphasizes the ending."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Export Target: "/><Run Text="Chooses the drum map used when the MIDI file is written. General MIDI is the default. Steven Slate Drums 5.5 - Factory Map translates MIDILab pieces to SSD5.5 factory articulation notes. Preview still uses the Windows General MIDI synth, so its basic sound does not change with this setting."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Energy: "/><Run Text="Controls activity and intensity. Higher settings can add busier kick patterns, stronger cymbal use, louder accents and more fill activity."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Humanize: "/><Run Text="Adds controlled timing and velocity variation. Low values are tighter and more machine-like; higher values are looser and more dynamic."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                        <Run FontWeight="Bold" Text="Customize Kit: "/><Run Text="Choose which drum/percussion rows are available. The default kit matches earlier MIDILab versions. Disabled pieces are excluded from new generations; optional pieces such as China, Splash, Tambourine, Cowbell, Clap and extra toms can be enabled."/>
+                    </TextBlock>
+                    <TextBlock TextWrapping="Wrap">
+                        <Run FontWeight="Bold" Text="Generate / New Variation / Reset Edits: "/><Run Text="Generate creates a new starting groove. New Variation creates another take using the same settings. Reset Edits returns to the exact most-recent generated take after manual grid edits."/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Style="{StaticResource PrimaryButtonStyle}" x:Name="GenerateButton" Content="Generate" Width="100" Height="38" Margin="0,0,8,0"
+                    Click="GenerateButton_Click"/>
+            <Button x:Name="VariationButton" Content="New Variation" Width="120" Height="38" Margin="0,0,8,0"
+                    Click="VariationButton_Click" IsEnabled="False"/>
+            <Button x:Name="ResetButton" Content="Reset Edits" Width="105" Height="38" Margin="0,0,12,0"
+                    Click="ResetButton_Click" IsEnabled="False"/>
+
+            <Button Style="{StaticResource PrimaryButtonStyle}" x:Name="PlayButton" Content="▶ Play" Width="82" Height="38" Margin="0,0,8,0"
+                    Click="PlayButton_Click"/>
+            <Button x:Name="StopButton" Content="■ Stop" Width="82" Height="38" Margin="0,0,12,0"
+                    Click="StopButton_Click" IsEnabled="False"/>
+
+            <Button Style="{StaticResource PrimaryButtonStyle}" x:Name="ExportButton" Content="Export MIDI..." Width="120" Height="38" Margin="0,0,12,0"
+                    Click="ExportButton_Click"/>
+            <TextBlock x:Name="StatusTextBlock" VerticalAlignment="Center" Foreground="{DynamicResource StatusForegroundBrush}">
+                Set your parameters, then click Generate.
+            </TextBlock>
+        </StackPanel>
+
+        <Border BorderBrush="{DynamicResource BorderBrushTheme}" Background="{DynamicResource PanelBackgroundBrush}" BorderThickness="1" CornerRadius="12" Padding="10">
+            <ScrollViewer x:Name="DrumScrollViewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <Grid x:Name="EditorGrid"/>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</Window>
