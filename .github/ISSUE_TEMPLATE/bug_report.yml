@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a reproducible problem in MIDILab
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MIDILab. Please include enough detail to reproduce the problem.
+
+  - type: input
+    id: version
+    attributes:
+      label: MIDILab version
+      description: "Example: v1.2"
+      placeholder: v1.2
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Tell us exactly what you did before the problem occurred.
+      placeholder: |
+        1. Open MIDILab
+        2. Set ...
+        3. Click ...
+        4. Error occurs
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Error or exception text
+      description: Paste the complete exception or relevant log text if available.
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, project settings, meter/genre, or anything else that may help.
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security check
+      options:
+        - label: This is not a security vulnerability. Security issues should be reported privately as described in SECURITY.md.
+          required: true
