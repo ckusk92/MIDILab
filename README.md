@@ -1,4 +1,4 @@
-# MIDILab v1.0
+# MIDILab v1.1.1
 
 A Windows/WPF drum-groove generator, editor, previewer, and MIDI exporter designed to feed drum instruments in DAWs such as REAPER.
 
@@ -20,6 +20,26 @@ Or from the folder containing `MIDILab.csproj`:
 ```powershell
 dotnet run
 ```
+
+
+## v1.1.1 - Drag-and-drop hit movement
+
+- Drag any active hit to another empty pad to move it without losing its exact MIDI velocity or timing offset.
+- Hits may be moved horizontally to a new step or vertically to another kit piece. Moving vertically changes the instrument while preserving performance details.
+- Dropping onto an occupied pad is intentionally blocked so an existing note is never overwritten accidentally.
+- Left-click add/remove and right-click Advanced Hit Editor behavior remain unchanged.
+
+## v1.1 - Projects, velocity editing, and themes
+
+- Added six selectable accent themes: **Indigo** (default), **Ocean**, **Emerald**, **Amber**, **Rose**, and **Slate**. Each can be combined with Light or Dark Mode.
+- Active pattern pads now visualize their MIDI velocity. Softer hits use a lighter/less intense accent and harder hits approach the full theme accent.
+- Right-click any active hit to open the Advanced Hit Editor. Exact MIDI velocity (1-127) and timing offset (-60 to +60 ticks) can be edited without changing the normal left-click add/remove workflow.
+- Added **Save Project** and **Open Project** using the `.midilab` project format. A project stores the editable pattern, hit velocities/timing, generated reset baseline, generation settings, active kit, export target, and appearance.
+- Reduced horizontal page padding and increased the maximum content width so the main interface can use more of the window while retaining comfortable margins.
+
+### `.midilab` project files
+
+MIDILab project files are versioned JSON documents intended for reopening work inside MIDILab. They are different from exported `.mid` files: `.midilab` preserves editor and generator state, while `.mid` is the portable musical output intended for REAPER or another DAW.
 
 
 ## v0.8 additions
