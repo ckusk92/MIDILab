@@ -1,0 +1,56 @@
+name: Feature Request
+description: Suggest an improvement or new capability for MIDILab
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Feature ideas are welcome. Describing the musical or editing problem is especially useful, even if you are not sure how it should be implemented.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do that MIDILab does not handle well today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed idea
+      description: Describe the behavior you would like to see.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Groove generation
+        - Fill generation
+        - Humanization / realism
+        - Pattern editing
+        - MIDI import / export / mapping
+        - Preview / audio
+        - User interface
+        - Project files
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: If you currently solve this another way, describe it here.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, MIDI examples, links, or other context that helps explain the request.

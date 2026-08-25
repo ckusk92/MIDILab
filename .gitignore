@@ -480,3 +480,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# MIDILab user/generated output
+*.mid
+*.midilab
+*.zip
+!examples/**/*.mid
+!examples/**/*.midilab
