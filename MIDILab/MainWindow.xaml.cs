@@ -72,6 +72,7 @@ public partial class MainWindow : Window
     private readonly List<DrumInstrument> _activeInstruments = [.. DefaultInstruments];
 
     private readonly GenreGrooveGenerator _generator = new();
+    private readonly FillGenerator _fillGenerator = new();
     private readonly MidiExporter _midiExporter = new();
     private readonly MidiPreviewPlayer _previewPlayer = new();
     private DrumPattern _pattern = new();
@@ -86,7 +87,10 @@ public partial class MainWindow : Window
     private bool _isDraggingHit;
     private bool _suppressClickAfterDrag;
     private bool _isLoadingProject;
+    private readonly List<EditorHistoryEntry> _undoHistory = [];
+    private readonly List<EditorHistoryEntry> _redoHistory = [];
 
+    private const int MaxHistoryEntries = 100;
     private const string DrumHitDragFormat = "MIDILab.DrumHit";
 
     public MainWindow()
@@ -107,13 +111,13 @@ public partial class MainWindow : Window
     private void GenerateButton_Click(object sender, RoutedEventArgs e)
     {
         StopPreview();
-        GenerateVariation("Generated a new starting groove");
+        GenerateVariation("Generated a new starting groove", "generate groove");
     }
 
     private void VariationButton_Click(object sender, RoutedEventArgs e)
     {
         StopPreview();
-        GenerateVariation("Generated a new variation");
+        GenerateVariation("Generated a new variation", "new variation");
     }
 
     private void ResetButton_Click(object sender, RoutedEventArgs e)
@@ -122,13 +126,14 @@ public partial class MainWindow : Window
             return;
 
         StopPreview();
+        RecordUndoState("reset edits");
         _pattern = _generatedBaseline.Clone();
         DrawEditor();
         ResetButton.IsEnabled = false;
         StatusTextBlock.Text = "Reset all manual edits to the most recently generated variation.";
     }
 
-    private void GenerateVariation(string statusPrefix)
+    private void GenerateVariation(string statusPrefix, string historyDescription)
     {
         if (!int.TryParse(BpmTextBox.Text, out var bpm) || bpm is < 20 or > 400)
         {
@@ -143,6 +148,7 @@ public partial class MainWindow : Window
         var humanize = HumanizeSlider.Value / 100.0;
         var timeSignature = GetSelectedTimeSignature();
 
+        RecordUndoState(historyDescription);
         _pattern = _generator.Generate(bpm, bars, energy, humanize, genre, timeSignature, section, _activeInstruments);
         _generatedBaseline = _pattern.Clone();
 
@@ -374,6 +380,9 @@ public partial class MainWindow : Window
         if (sender is not CheckBox { Tag: DrumInstrument instrument } checkBox)
             return;
 
+        if (IsLoaded)
+            RecordUndoState(checkBox.IsChecked == true ? "add kit piece" : "remove kit piece");
+
         if (checkBox.IsChecked == true)
         {
             if (!_activeInstruments.Contains(instrument))
@@ -523,6 +532,7 @@ public partial class MainWindow : Window
                 throw new InvalidDataException($"This MIDILab version cannot open project format version {project.Version}.");
 
             ApplyProject(project);
+            ClearHistory();
             StatusTextBlock.Text = $"Opened project {Path.GetFileName(dialog.FileName)} with {project.Pattern.Hits.Count} hits.";
         }
         catch (Exception ex)
@@ -732,6 +742,7 @@ public partial class MainWindow : Window
     private void DrawEditor()
     {
         HideHitEditor();
+        UpdateFillBarOptions();
         _playheadMarker = null;
         _currentPlayheadStep = -1;
         EditorGrid.Children.Clear();
@@ -887,6 +898,7 @@ public partial class MainWindow : Window
             return;
 
         StopPreview();
+        RecordUndoState(_pattern.FindHit(tag.Instrument, tag.Step) is null ? "add hit" : "remove hit");
         _pattern.ToggleHit(tag.Instrument, tag.Step, DefaultVelocity(tag.Instrument));
         DrawEditor();
         ResetButton.IsEnabled = _generatedBaseline is not null;
@@ -976,6 +988,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        RecordUndoState("move hit");
         var velocity = sourceHit.Velocity;
         var timingOffset = sourceHit.TimingOffsetTicks;
         _pattern.Hits.Remove(sourceHit);
@@ -1050,7 +1063,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        hit.Velocity = Math.Clamp((int)Math.Round(HitVelocitySlider.Value), 1, 127);
+        var newVelocity = Math.Clamp((int)Math.Round(HitVelocitySlider.Value), 1, 127);
+        if (hit.Velocity != newVelocity || hit.TimingOffsetTicks != timing)
+            RecordUndoState("edit hit");
+
+        hit.Velocity = newVelocity;
         hit.TimingOffsetTicks = timing;
         HideHitEditor();
         DrawEditor();
@@ -1065,7 +1082,10 @@ public partial class MainWindow : Window
 
         var hit = _pattern.FindHit(tag.Instrument, tag.Step);
         if (hit is not null)
+        {
+            RecordUndoState("remove hit");
             _pattern.Hits.Remove(hit);
+        }
 
         HideHitEditor();
         DrawEditor();
@@ -1151,6 +1171,209 @@ public partial class MainWindow : Window
         {
             GroupingPanel.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (Keyboard.FocusedElement is TextBox)
+            return;
+
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Z)
+        {
+            UndoLastChange();
+            e.Handled = true;
+        }
+        else if ((Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Y) ||
+                 (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.Z))
+        {
+            RedoLastChange();
+            e.Handled = true;
+        }
+    }
+
+    private void UndoButton_Click(object sender, RoutedEventArgs e) => UndoLastChange();
+
+    private void RedoButton_Click(object sender, RoutedEventArgs e) => RedoLastChange();
+
+    private void UndoLastChange()
+    {
+        if (_undoHistory.Count == 0)
+            return;
+
+        StopPreview();
+        HideHitEditor();
+        var entry = _undoHistory[^1];
+        _undoHistory.RemoveAt(_undoHistory.Count - 1);
+        _redoHistory.Add(CaptureHistoryState(entry.Description));
+        TrimHistory(_redoHistory);
+        ApplyHistoryState(entry);
+        UpdateUndoRedoButtons();
+        StatusTextBlock.Text = $"Undid {entry.Description}.";
+    }
+
+    private void RedoLastChange()
+    {
+        if (_redoHistory.Count == 0)
+            return;
+
+        StopPreview();
+        HideHitEditor();
+        var entry = _redoHistory[^1];
+        _redoHistory.RemoveAt(_redoHistory.Count - 1);
+        _undoHistory.Add(CaptureHistoryState(entry.Description));
+        TrimHistory(_undoHistory);
+        ApplyHistoryState(entry);
+        UpdateUndoRedoButtons();
+        StatusTextBlock.Text = $"Redid {entry.Description}.";
+    }
+
+    private void RecordUndoState(string description)
+    {
+        _undoHistory.Add(CaptureHistoryState(description));
+        TrimHistory(_undoHistory);
+        _redoHistory.Clear();
+        UpdateUndoRedoButtons();
+    }
+
+    private EditorHistoryEntry CaptureHistoryState(string description) => new(
+        _pattern.Clone(),
+        _generatedBaseline?.Clone(),
+        [.. _activeInstruments],
+        description);
+
+    private void ApplyHistoryState(EditorHistoryEntry entry)
+    {
+        _pattern = entry.Pattern.Clone();
+        _generatedBaseline = entry.GeneratedBaseline?.Clone();
+        _activeInstruments.Clear();
+        _activeInstruments.AddRange(entry.ActiveInstruments);
+        SortActiveInstruments();
+        BuildKitOptions();
+        DrawEditor();
+        VariationButton.IsEnabled = _pattern.Hits.Count > 0;
+        ResetButton.IsEnabled = _generatedBaseline is not null && !PatternsEquivalent(_pattern, _generatedBaseline);
+    }
+
+    private void ClearHistory()
+    {
+        _undoHistory.Clear();
+        _redoHistory.Clear();
+        UpdateUndoRedoButtons();
+    }
+
+    private static void TrimHistory(List<EditorHistoryEntry> history)
+    {
+        if (history.Count > MaxHistoryEntries)
+            history.RemoveRange(0, history.Count - MaxHistoryEntries);
+    }
+
+    private void UpdateUndoRedoButtons()
+    {
+        if (UndoButton is not null)
+            UndoButton.IsEnabled = _undoHistory.Count > 0;
+        if (RedoButton is not null)
+            RedoButton.IsEnabled = _redoHistory.Count > 0;
+    }
+
+    private void FillGeneratorButton_Click(object sender, RoutedEventArgs e)
+    {
+        var opening = FillGeneratorBorder.Visibility != Visibility.Visible;
+        FillGeneratorBorder.Visibility = opening ? Visibility.Visible : Visibility.Collapsed;
+        FillGeneratorButton.Content = opening ? "Hide Fill" : "Generate Fill...";
+        if (opening)
+        {
+            HideHitEditor();
+            UpdateFillBarOptions(selectLastIfUnset: true);
+        }
+    }
+
+    private void CloseFillGeneratorButton_Click(object sender, RoutedEventArgs e)
+    {
+        FillGeneratorBorder.Visibility = Visibility.Collapsed;
+        FillGeneratorButton.Content = "Generate Fill...";
+    }
+
+    private void FillIntensitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (FillIntensityValueTextBlock is not null)
+            FillIntensityValueTextBlock.Text = Math.Round(e.NewValue).ToString("0");
+    }
+
+    private void GenerateFillButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_pattern.TotalSteps <= 0 || _pattern.Bars <= 0)
+            return;
+
+        var barIndex = Math.Clamp(FillBarComboBox.SelectedIndex, 0, _pattern.Bars - 1);
+        var fillSteps = GetSelectedFillLengthSteps();
+        var intensity = FillIntensitySlider.Value / 10.0;
+        var humanize = HumanizeSlider.Value / 100.0;
+        var genre = GetSelectedGenre();
+
+        StopPreview();
+        RecordUndoState("generate fill");
+        var generatedHits = _fillGenerator.Generate(
+            _pattern,
+            barIndex,
+            fillSteps,
+            intensity,
+            humanize,
+            genre,
+            _activeInstruments);
+
+        if (generatedHits == 0)
+        {
+            // Nothing was changed if the active custom kit has no usable fill voices.
+            if (_undoHistory.Count > 0)
+                _undoHistory.RemoveAt(_undoHistory.Count - 1);
+            UpdateUndoRedoButtons();
+            MessageBox.Show("The active kit does not contain a drum that can be used for this fill. Enable Snare, a Tom, Kick, or another percussion voice and try again.",
+                "Fill Generator", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        DrawEditor();
+        ResetButton.IsEnabled = _generatedBaseline is not null;
+        var lengthLabel = FillLengthComboBox.SelectedItem is ComboBoxItem { Content: string label } ? label : "selected region";
+        StatusTextBlock.Text = $"Generated a {Math.Round(FillIntensitySlider.Value):0}/10 {genre} fill in bar {barIndex + 1} ({lengthLabel}). Undo or generate again to try another take.";
+    }
+
+    private void UpdateFillBarOptions(bool selectLastIfUnset = false)
+    {
+        if (FillBarComboBox is null)
+            return;
+
+        var oldIndex = FillBarComboBox.SelectedIndex;
+        FillBarComboBox.Items.Clear();
+        for (var bar = 1; bar <= Math.Max(1, _pattern.Bars); bar++)
+            FillBarComboBox.Items.Add(new ComboBoxItem { Content = $"Bar {bar}" });
+
+        if (selectLastIfUnset || oldIndex < 0)
+            FillBarComboBox.SelectedIndex = Math.Max(0, _pattern.Bars - 1);
+        else
+            FillBarComboBox.SelectedIndex = Math.Clamp(oldIndex, 0, Math.Max(0, _pattern.Bars - 1));
+    }
+
+    private int GetSelectedFillLengthSteps()
+    {
+        if (FillLengthComboBox.SelectedIndex == 2)
+            return _pattern.StepsPerBar;
+
+        var meter = _pattern.Meter;
+        var requestedPulses = FillLengthComboBox.SelectedIndex == 0 ? 1 : 2;
+
+        // Compound/odd eighth-note meters are more musical when a "beat" follows
+        // the configured grouping (6/8 -> 3+3, 7/8 -> e.g. 2+2+3) rather than one
+        // literal eighth note. Quarter-note meters retain ordinary beat lengths.
+        if (meter.Denominator == 8 && meter.GroupSizes.Length > 1)
+        {
+            var groups = meter.GroupSizes;
+            var take = Math.Min(requestedPulses, groups.Length);
+            var denominatorBeats = groups.Skip(groups.Length - take).Sum();
+            return Math.Min(_pattern.StepsPerBar, denominatorBeats * meter.StepsPerDenominatorBeat);
+        }
+
+        return Math.Min(_pattern.StepsPerBar, requestedPulses * meter.StepsPerDenominatorBeat);
     }
 
     private static string GetStepLabel(int localStep, TimeSignature meter)
@@ -1247,6 +1470,12 @@ public partial class MainWindow : Window
         string DarkHover,
         string DarkSoft,
         string DarkHeader);
+
+    private sealed record EditorHistoryEntry(
+        DrumPattern Pattern,
+        DrumPattern? GeneratedBaseline,
+        List<DrumInstrument> ActiveInstruments,
+        string Description);
 
     private sealed record CellTag(DrumInstrument Instrument, int Step);
 }

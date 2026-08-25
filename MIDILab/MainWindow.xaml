@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MIDILab" Height="740" Width="1140" MinHeight="620" MinWidth="900"
+        PreviewKeyDown="Window_PreviewKeyDown"
         Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
     <Window.Resources>
         <!-- MIDILab theme tokens. MainWindow.xaml.cs swaps these brushes for dark mode. -->
@@ -459,7 +460,13 @@
                             <Run FontWeight="Bold" Text="Generate / New Variation / Reset Edits: "/><Run Text="Generate creates a new starting groove. New Variation creates another take using the same settings. Reset Edits returns to the exact most-recent generated take after manual grid edits."/>
                         </TextBlock>
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
-                            <Run FontWeight="Bold" Text="Pattern editing: "/><Run Text="Left-click a pad to add or remove a hit. Active pads are shaded by MIDI velocity: softer hits are lighter and harder hits are stronger. Right-click an active pad to edit its exact velocity and timing offset."/>
+                            <Run FontWeight="Bold" Text="Pattern editing: "/><Run Text="Left-click a pad to add or remove a hit. Active pads are shaded by MIDI velocity: softer hits are lighter and harder hits are stronger. Drag an active hit to move it while preserving velocity/timing, or right-click it to edit those values directly."/>
+                        </TextBlock>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                            <Run FontWeight="Bold" Text="Undo / Redo: "/><Run Text="Undo and redo recent pattern changes including pad edits, hit moves, advanced hit edits, fills, Reset Edits, and generated variations. Keyboard shortcuts are Ctrl+Z and Ctrl+Y."/>
+                        </TextBlock>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
+                            <Run FontWeight="Bold" Text="Fill Generator: "/><Run Text="Choose a target bar, fill length, and intensity. MIDILab replaces only the ending region of that bar with a genre-aware, humanized fill while leaving the rest of the groove untouched."/>
                         </TextBlock>
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,5">
                             <Run FontWeight="Bold" Text="Projects: "/><Run Text="Save Project stores the editable drum pattern, generated reset baseline, generation settings, kit, export target, and appearance in a .midilab file. Open Project restores them later."/>
@@ -500,10 +507,83 @@
             <!-- Editor -->
             <StackPanel>
                 <Grid Margin="2,0,2,8">
-                    <TextBlock Text="Pattern Editor" Style="{StaticResource SectionTitleStyle}" Margin="0"/>
-                    <TextBlock Text="Color intensity = velocity  •  Left-click add/remove  •  Drag active hit to move  •  Right-click to edit" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Pattern Editor" Style="{StaticResource SectionTitleStyle}" Margin="0" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,-3,0,0" VerticalAlignment="Top">
+                        <Button x:Name="UndoButton" Content="↶ Undo" Height="30" Padding="10,0" Margin="0,0,6,0" IsEnabled="False"
+                                Click="UndoButton_Click" ToolTip="Undo the last pattern change (Ctrl+Z)."/>
+                        <Button x:Name="RedoButton" Content="↷ Redo" Height="30" Padding="10,0" Margin="0,0,6,0" IsEnabled="False"
+                                Click="RedoButton_Click" ToolTip="Redo the last undone pattern change (Ctrl+Y)."/>
+                        <Button x:Name="FillGeneratorButton" Content="Generate Fill..." Height="30" Padding="11,0"
+                                Style="{StaticResource AccentOutlineButtonStyle}" Click="FillGeneratorButton_Click"
+                                ToolTip="Replace the ending portion of a selected bar with a generated drum fill."/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0"
+                               Text="Color intensity = velocity  •  Left-click add/remove  •  Drag active hit to move  •  Right-click to edit"
                                FontSize="12" Foreground="{DynamicResource StatusForegroundBrush}"/>
                 </Grid>
+
+                <Border x:Name="FillGeneratorBorder" Visibility="Collapsed" Margin="0,0,0,9" Padding="14,11"
+                        BorderThickness="1" BorderBrush="{DynamicResource AccentBrush}" CornerRadius="12"
+                        Background="{DynamicResource AccentSoftBrush}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="135"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center" MinWidth="150">
+                            <TextBlock Text="Fill Generator" FontWeight="Bold" FontSize="14"/>
+                            <TextBlock Text="Replaces only the selected ending region" Margin="0,2,0,0" FontSize="11"
+                                       Foreground="{DynamicResource StatusForegroundBrush}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="Target bar" Style="{StaticResource FieldLabelStyle}"/>
+                            <ComboBox x:Name="FillBarComboBox" Width="115" HorizontalAlignment="Left"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                            <TextBlock Text="Fill length" Style="{StaticResource FieldLabelStyle}"/>
+                            <ComboBox x:Name="FillLengthComboBox" Width="130" SelectedIndex="1" HorizontalAlignment="Left">
+                                <ComboBoxItem Content="1 Beat"/>
+                                <ComboBoxItem Content="2 Beats"/>
+                                <ComboBoxItem Content="Full Bar"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="6" VerticalAlignment="Center">
+                            <DockPanel Margin="0,0,0,4">
+                                <TextBlock Text="Intensity" Style="{StaticResource FieldLabelStyle}" Margin="0"/>
+                                <TextBlock x:Name="FillIntensityValueTextBlock" Text="5" DockPanel.Dock="Right" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AccentBrush}"/>
+                            </DockPanel>
+                            <Slider x:Name="FillIntensitySlider" Minimum="1" Maximum="10" Value="5" TickFrequency="1" IsSnapToTickEnabled="True"
+                                    ValueChanged="FillIntensitySlider_ValueChanged"
+                                    ToolTip="1 produces a restrained fill; 10 produces a denser, more energetic fill."/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="8" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="Generate Fill" Style="{StaticResource PrimaryButtonStyle}" Padding="13,6" Margin="0,0,7,0"
+                                    Click="GenerateFillButton_Click"/>
+                            <Button Content="Close" Padding="11,6" Click="CloseFillGeneratorButton_Click"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
 
                 <Border x:Name="HitEditorBorder" Visibility="Collapsed" Margin="0,0,0,9" Padding="14,11"
                         BorderThickness="1" BorderBrush="{DynamicResource AccentBrush}" CornerRadius="12"
