@@ -1,4 +1,4 @@
-# MIDILab v1.1.1
+# MIDILab v1.2
 
 A Windows/WPF drum-groove generator, editor, previewer, and MIDI exporter designed to feed drum instruments in DAWs such as REAPER.
 
@@ -21,6 +21,16 @@ Or from the folder containing `MIDILab.csproj`:
 dotnet run
 ```
 
+
+
+## v1.2 - Undo/Redo and Fill Generator
+
+- Added **Undo** and **Redo** buttons plus **Ctrl+Z**, **Ctrl+Y**, and **Ctrl+Shift+Z** shortcuts. Pattern history covers generated grooves/variations, Reset Edits, pad add/remove, drag-and-drop moves, advanced velocity/timing edits, kit-piece changes, and generated fills. A new edit after Undo clears the Redo branch, matching standard editor behavior.
+- Added a **Fill Generator** above the pattern grid. Choose a target bar, **1 Beat**, **2 Beats**, or **Full Bar**, and an intensity from 1-10.
+- Fill generation replaces only the ending region selected inside the target bar. Everything before that region stays untouched.
+- Fill choices are genre-aware and can produce snare builds, mixed snare/tom fills, or descending tom runs. Intensity influences density and dynamics, while the existing Humanize setting supplies velocity and timing variation.
+- Custom kit choices are respected. The fill generator favors Snare and Toms, can add Kick accents, and can occasionally use Crash/China color at higher intensities when those pieces are enabled.
+- In compound/odd eighth-note meters such as 6/8 and 7/8, the 1 Beat / 2 Beats options follow the meter grouping so fill lengths align with the musical pulse instead of a single literal eighth note.
 
 ## v1.1.1 - Drag-and-drop hit movement
 
@@ -629,7 +639,7 @@ There are also current limitations worth understanding:
 - MIDILab does not yet generate relationships among multiple song sections.
 - It does not yet reason about a bass line, melody, chord progression, or other instruments.
 - Removing a core kit instrument filters it out but does not fully re-orchestrate the groove around the missing piece.
-- Fill vocabulary is intentionally small at this stage.
+- The dedicated Fill Generator now has several fill families, but its vocabulary is still intentionally compact compared with a full drummer-performance engine.
 - The random seed is not exposed or saved.
 
 These are deliberate boundaries of the current version rather than fundamental architectural limits. The internal pattern model keeps note position, instrument, velocity, timing offset, tempo, and meter separate from the MIDI exporter, so the generation system can become substantially more sophisticated without changing the basic editor/export workflow.
