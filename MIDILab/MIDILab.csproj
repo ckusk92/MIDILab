@@ -7,4 +7,8 @@
     <UseWPF>true</UseWPF>
 	<ApplicationIcon>Assets\MIDILab.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+	  <Resource Include="Assets\MIDILab.ico" />
+  </ItemGroup>
 </Project>
