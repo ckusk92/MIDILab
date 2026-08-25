@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MIDILab" Height="720" Width="1220" MinHeight="560" MinWidth="900"
-        Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
+        Icon="Assets/MIDILab.ico"
+		Background="{DynamicResource WindowBackgroundBrush}" Foreground="{DynamicResource WindowForegroundBrush}">
     <Window.Resources>
         <!-- MIDILab theme tokens. MainWindow.xaml.cs swaps these brushes for dark mode. -->
         <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FFF4F6FA"/>
